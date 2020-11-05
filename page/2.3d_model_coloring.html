@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3d model</title>
+    <link rel="stylesheet" href="../lib/Cesium/Widgets/widgets.css">
+    <link rel="stylesheet" href="../style/reset.css">
+    <link rel="stylesheet" href="../style/basic.css">
+    <script src="../lib/Cesium/Cesium.js"></script>
+    <style>
+        .opreations {
+            position: absolute;
+            z-index: 1;
+            right: 10px;
+            top: 70px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 4px;
+            padding: 8px 10px;
+        }
+        .opreations .tit { line-height: 34px; }
+        .opreations p { display: flex; align-items: center; line-height: 32px; }
+        .opreations label { margin: 0 10px; }
+    </style>
+</head>
+<body>
+    <div id="cesium_container">
+        <div class="fun">
+            <h3 class="tit">功能：</h3>
+            <p>1. 设置模型的颜色、模式及透明度</p>
+            <p>2. 设置模型边缘的颜色及透明度</p>
+            <p>3. 设置模型阴影</p>
+        </div>
+        <div class="opreations">
+            <h3 class="tit">模型颜色</h3>
+            <div>
+                <p>
+                    <label for="modelColorMode">模式</label>
+                    <select id="modelColorMode" onchange="changeColorMode()">
+                        <option value="highlight">高亮</option>
+                        <option value="replace">替换</option>
+                        <option value="mix">混合</option>
+                    </select>
+                </p>
+                <p>
+                    <label for="modelColor">颜色</label>
+                    <select id="modelColor" onchange="changeModelColor()">
+                        <option value="white">白色</option>
+                        <option value="red">红色</option>
+                        <option value="green">绿色</option>
+                        <option value="blue">蓝色</option>
+                        <option value="yellow">黄色</option>
+                        <option value="purple">紫色</option>
+                    </select>
+                </p>
+                <p>
+                    <label for="modelAlpha">透明度</label>
+                    <input type="range" id="modelAlpha" min="0" max="1" step="0.01" oninput="changeModelColor()"/>
+                </p>
+                <p>
+                    <label for="mix">混合程度</label>
+                    <input id="mix" type="range" min="0" max="1" step="0.01" disabled oninput="changeBlendMix()" />
+                </p>
+            </div>
+
+            <h3 class="tit">模型轮廓</h3>
+            <div>
+                <p>
+                    <label for="silhouetteColor">颜色</label>
+                    <select id="silhouetteColor" onchange="changeSilhouetteColor()">
+                        <option value="white">白色</option>
+                        <option value="red">红色</option>
+                        <option value="green">绿色</option>
+                        <option value="blue">蓝色</option>
+                        <option value="yellow">黄色</option>
+                        <option value="purple">紫色</option>
+                    </select>
+                </p>
+                <p>
+                    <label for="sillhouetteAlpha">透明度</label>
+                    <input type="range" id="sillhouetteAlpha" min="0" max="1" step="0.01" oninput="changeSilhouetteColor()" />
+                </p>
+                <p>
+                    <label for="sillhouetteSize">粗细</label>
+                    <input id="sillhouetteSize" type="range" min="0" max="10" step="1" oninput="changeSilhouetteSize()" />
+                </p>
+            </div>
+            <div>
+                <p>
+                    <select style="margin-right: 20px;" name="model" onchange="selectModel(event)">
+                        <option value="air">灰机</option>
+                        <option value="drone">无人机</option>
+                        <option value="groundVehicle">货车</option>
+                        <option value="balloon">热气球</option>
+                        <option value="milkTruck">牛奶卡车</option>
+                        <option value="man">人</option>
+                        <option value="gltfMilkTruck">牛奶卡车-gltf</option>
+                    </select>
+                    <input type="checkbox" id="shadow" /> <label for="shadow">阴影</label>
+                </p>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        let viewer = new Cesium.Viewer('cesium_container', {
+            infoBox: false,
+            selectionIndector: false,
+            shadow: true,
+            shouldAnimate: true
+        });
+
+        const data = [ 
+            { name: '灰机', uri: `../data/models/CesiumAir/Cesium_Air.glb`, height: 5000 },
+            { name: '无人机', uri: `../data/models/CesiumDrone/CesiumDrone.glb`, height: 150 },
+            { name: '货车', uri: `../data/models/GroundVehicle/GroundVehicle.glb`, height: 0 },
+            { name: '热气球', uri: `../data/models/CesiumBalloon/CesiumBalloon.glb`, height: 1000 },
+            { name: '牛奶卡车', uri: `../data/models/CesiumMilkTruck/CesiumMilkTruck.glb`, height: 0 },
+            { name: '人', uri: `../data/models/CesiumMan/Cesium_Man.glb`, height: 0 },
+            { name: '牛奶卡车gltf', uri: `../data/models/DracoCompressed/CesiumMilkTruck.gltf`, height: 0 }
+        ];
+        let entity;
+       
+        
+        function createModel(name, uri, height) {
+            viewer.entities.removeAll();
+
+            let position = Cesium.Cartesian3.fromDegrees(117, 36, height);
+            let heading = Cesium.Math.toRadians(135);
+            let pitch = 0;
+            let roll = 0;
+            let hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+            let orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+
+            entity = new Cesium.Entity({
+                name,
+                position,
+                orientation,
+                model: {
+                    uri,
+                    minimumPixelSize: 64,
+                    maximumScale: 2000,
+                    color: Cesium.Color.fromAlpha( Cesium.Color['WHITE'], 1 ),
+                    colorBlendMode: Cesium.ColorBlendMode.HIGHLIGHT,
+                    colorBlendAmount: 0.5,
+                    silhouetteColor: Cesium.Color.fromAlpha( Cesium.Color['WHITE'], 1),
+                    silhouetteSize: 2
+                }
+            });
+
+            viewer.entities.add(entity);
+            viewer.trackedEntity = entity;
+        }
+
+        createModel(data[0].name, data[0].uri, data[0].height);
+        
+        function selectModel(evt) {
+            let selectIndex = evt.target.options.selectedIndex;
+            createModel(data[selectIndex].name, data[selectIndex].uri, data[selectIndex].height);
+        }
+
+        function changeColorMode() {
+            let value = modelColorMode.value.toUpperCase();
+            entity.model.colorBlendMode = Cesium.ColorBlendMode[value];
+            document.getElementById('mix').disabled = Cesium.ColorBlendMode[value] != Cesium.ColorBlendMode.MIX;
+        }
+
+        function changeModelColor() {
+            let colorValue = modelColor.value.toUpperCase();
+            let alphaValue = parseFloat(modelAlpha.value);
+            entity.model.color = Cesium.Color.fromAlpha(Cesium.Color[colorValue], alphaValue);
+        }
+        
+        function changeBlendMix() {
+            let value = parseFloat(mix.value);
+            entity.model.colorBlendAmount = value;
+        }
+
+        function changeSilhouetteColor() {
+            let colorValue = silhouetteColor.value.toUpperCase();
+            let alphaValue = parseFloat(sillhouetteAlpha.value);
+            entity.model.silhouetteColor = Cesium.Color.fromAlpha(Cesium.Color[colorValue], alphaValue);
+        }
+
+        function changeSilhouetteSize() {
+            let value = parseFloat(sillhouetteSize.value);
+            entity.model.silhouetteSize = value;
+        }
+      
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+/* reset css */
+* { margin: 0; padding: 0; font-size: 12px; font-style: none; font-weight: normal; }
+li { list-style: none; }
+a { text-decoration: none; }
+select { border: 1px solid #7a9cd3; height: 24px; background: rgba(0, 0, 0, 0.8); color: #fff; outline: none; }
